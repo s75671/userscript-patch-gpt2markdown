@@ -1,0 +1,65 @@
+name: Apply userscript patch
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_url:
+        description: Source file URL to download
+        required: false
+        default: https://update.greasyfork.org/scripts/543471/Export%20ChatGPTGeminiGrok%20conversations%20as%20Markdown.user.js
+      output_file:
+        description: Path for the patched output file
+        required: false
+        default: dist/Export_ChatGPT_Gemini_Grok_conversations_as_Markdown.patched.user.js
+      patch_script:
+        description: Patch script to execute
+        required: false
+        default: scripts/patch-export-chat-md.sh
+      commit_changes:
+        description: Commit patched output back to the repository
+        required: false
+        type: boolean
+        default: false
+  schedule:
+    - cron: '0 3 * * 1'
+
+permissions:
+  contents: write
+
+jobs:
+  apply-patch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Apply patch
+        env:
+          SOURCE_URL: ${{ github.event.inputs.source_url || 'https://update.greasyfork.org/scripts/543471/Export%20ChatGPTGeminiGrok%20conversations%20as%20Markdown.user.js' }}
+          OUTPUT_FILE: ${{ github.event.inputs.output_file || 'dist/Export_ChatGPT_Gemini_Grok_conversations_as_Markdown.patched.user.js' }}
+        run: |
+          set -eu
+          PATCH_SCRIPT="${{ github.event.inputs.patch_script || 'scripts/patch-export-chat-md.sh' }}"
+          sh "$PATCH_SCRIPT"
+
+      - name: Upload patched file
+        uses: actions/upload-artifact@v4
+        with:
+          name: patched-userscript
+          path: ${{ github.event.inputs.output_file || 'dist/Export_ChatGPT_Gemini_Grok_conversations_as_Markdown.patched.user.js' }}
+          if-no-files-found: error
+
+      - name: Commit patched file
+        if: ${{ github.event.inputs.commit_changes == 'true' }}
+        run: |
+          set -eu
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "${{ github.event.inputs.output_file || 'dist/Export_ChatGPT_Gemini_Grok_conversations_as_Markdown.patched.user.js' }}"
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Apply userscript patch"
+            git push
+          fi
