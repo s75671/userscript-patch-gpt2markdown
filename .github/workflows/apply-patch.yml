@@ -59,7 +59,7 @@ jobs:
           set -eu
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "${{ github.event.inputs.output_file || 'dist/Export_ChatGPT_Gemini_Grok_conversations_as_Markdown.patched.user.js' }}"
+          git add -f "${{ github.event.inputs.output_file || 'dist/Export_ChatGPT_Gemini_Grok_conversations_as_Markdown.patched.user.js' }}"
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else
